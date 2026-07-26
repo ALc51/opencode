@@ -226,7 +226,7 @@ func NewFindDialog(completionProvider CompletionProvider) FindDialog {
 		textInput:          ti,
 		list:               li,
 		modal: modal.New(
-			modal.WithTitle("Find Files"),
+			modal.WithTitle("查找文件"),
 			modal.WithMaxWidth(80),
 		),
 	}

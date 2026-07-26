@@ -73,7 +73,7 @@ func NewHelpDialog(app *app.App) HelpDialog {
 			commandsComponent.WithShowAll(true),
 			commandsComponent.WithKeybinds(true),
 		),
-		modal:    modal.New(modal.WithTitle("Help")),
+		modal:    modal.New(modal.WithTitle("帮助")),
 		viewport: vp,
 	}
 }

@@ -1,0 +1,92 @@
+name: Sync upstream and translate zh
+
+# opencode fork: 每日同步上游最新 release → rebase my-custom → 自动翻译新增 Go UI 字符串
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: '上游仓库 owner/name(留空用默认)'
+        required: false
+        default: ''
+
+env:
+  UPSTREAM_REPO: anomalyco/opencode
+  CUSTOM_BRANCH: my-custom
+  MAIN_BRANCH: main
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git and upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          REPO="${{ inputs.upstream_repo }}"; [ -z "$REPO" ] && REPO="$UPSTREAM_REPO"
+          git remote add upstream "https://github.com/$REPO.git"
+          git fetch upstream --tags
+          echo "repo=$REPO" >> "$GITHUB_ENV"
+
+      - name: Find latest release tag
+        id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=$(gh release view --repo "${{ env.repo }}" --json tagName -q .tagName 2>/dev/null || git tag --sort=-creatordate --list 'v0.1.*' | head -1)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "最新 release tag: $TAG"
+
+      - name: Fast-forward main to latest tag
+        run: |
+          git checkout -B "$MAIN_BRANCH" "${{ steps.latest.outputs.tag }}"
+          git push origin "$MAIN_BRANCH" --force-with-lease
+
+      - name: Rebase custom branch onto main
+        id: rebase
+        continue-on-error: true
+        run: |
+          git checkout "$CUSTOM_BRANCH"
+          git rebase "$MAIN_BRANCH"
+          git push origin "$CUSTOM_BRANCH" --force-with-lease
+
+      - name: Translate new Go UI strings
+        run: |
+          git checkout "$CUSTOM_BRANCH"
+          cd packages/tui
+          python3 ../../scripts/translate_go_ui.py internal/
+          cd ../..
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m "chore(i18n): auto-translate new Go UI strings for ${{ steps.latest.outputs.tag }}"
+            git push origin "$CUSTOM_BRANCH"
+            echo "已推送新翻译"
+          else
+            echo "无新增翻译"
+          fi
+
+      - name: Notify on rebase conflict
+        if: steps.rebase.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create --title "Rebase $CUSTOM_BRANCH 失败 ($(date -u +%F))" \
+            --body "上游更新到 \`${{ steps.latest.outputs.tag }}\`,rebase \`$CUSTOM_BRANCH\` 时冲突,需手动处理:
+          \`\`\`bash
+          git fetch origin
+          git checkout $CUSTOM_BRANCH
+          git rebase $MAIN_BRANCH
+          git rebase --continue
+          git push origin $CUSTOM_BRANCH --force-with-lease
+          \`\`\`" || true

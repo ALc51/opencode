@@ -179,7 +179,7 @@ func (s *sessionDialog) deleteSession(sessionID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		if err := s.app.DeleteSession(ctx, sessionID); err != nil {
-			return toast.NewErrorToast("Failed to delete session: " + err.Error())()
+			return toast.NewErrorToast("删除会话失败: " + err.Error())()
 		}
 		return nil
 	}
@@ -221,7 +221,7 @@ func NewSessionDialog(app *app.App) SessionDialog {
 		app:                app,
 		deleteConfirmation: -1,
 		modal: modal.New(
-			modal.WithTitle("Switch Session"),
+			modal.WithTitle("切换会话"),
 			modal.WithMaxWidth(layout.Current.Container.Width-8),
 		),
 	}

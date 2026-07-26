@@ -357,15 +357,15 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.fileCompletionActive = false
 	case opencode.EventListResponseEventInstallationUpdated:
 		return a, toast.NewSuccessToast(
-			"opencode updated to "+msg.Properties.Version+", restart to apply.",
-			toast.WithTitle("New version installed"),
+			"opencode 已更新到 "+msg.Properties.Version+", restart to apply.",
+			toast.WithTitle("新版本已安装"),
 		)
 	case opencode.EventListResponseEventSessionDeleted:
 		if a.app.Session != nil && msg.Properties.Info.ID == a.app.Session.ID {
 			a.app.Session = &opencode.Session{}
 			a.app.Messages = []opencode.Message{}
 		}
-		return a, toast.NewSuccessToast("Session deleted successfully")
+		return a, toast.NewSuccessToast("会话已删除")
 	case opencode.EventListResponseEventSessionUpdated:
 		if msg.Properties.Info.ID == a.app.Session.ID {
 			a.app.Session = &msg.Properties.Info
@@ -409,7 +409,7 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case nil:
 		case opencode.ProviderAuthError:
 			slog.Error("Failed to authenticate with provider", "error", err.Data.Message)
-			return a, toast.NewErrorToast("Provider error: " + err.Data.Message)
+			return a, toast.NewErrorToast("提供商错误: " + err.Data.Message)
 		case opencode.UnknownError:
 			slog.Error("Server error", "name", err.Name, "message", err.Data.Message)
 			return a, toast.NewErrorToast(err.Data.Message, toast.WithTitle(string(err.Name)))
@@ -459,7 +459,7 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		messages, err := a.app.ListMessages(context.Background(), msg.ID)
 		if err != nil {
 			slog.Error("Failed to list messages", "error", err)
-			return a, toast.NewErrorToast("Failed to open session")
+			return a, toast.NewErrorToast("打开会话失败")
 		}
 		a.app.Session = msg
 		a.app.Messages = messages
@@ -592,7 +592,7 @@ func (a appModel) openFile(filepath string) (tea.Model, tea.Cmd) {
 	)
 	if err != nil {
 		slog.Error("Failed to read file", "error", err)
-		return a, toast.NewErrorToast("Failed to read file")
+		return a, toast.NewErrorToast("读取文件失败")
 	}
 	a.fileViewer, cmd = a.fileViewer.SetFile(
 		filepath,
@@ -769,7 +769,7 @@ func (a appModel) executeCommand(command commands.Command) (tea.Model, tea.Cmd) 
 		}
 		editor := os.Getenv("EDITOR")
 		if editor == "" {
-			return a, toast.NewErrorToast("No EDITOR set, can't open editor")
+			return a, toast.NewErrorToast("未设置 EDITOR,无法打开编辑器")
 		}
 
 		value := a.editor.Value()
@@ -781,7 +781,7 @@ func (a appModel) executeCommand(command commands.Command) (tea.Model, tea.Cmd) 
 		tmpfile.WriteString(value)
 		if err != nil {
 			slog.Error("Failed to create temp file", "error", err)
-			return a, toast.NewErrorToast("Something went wrong, couldn't open editor")
+			return a, toast.NewErrorToast("出错了,无法打开编辑器")
 		}
 		tmpfile.Close()
 		c := exec.Command(editor, tmpfile.Name()) //nolint:gosec
@@ -825,11 +825,11 @@ func (a appModel) executeCommand(command commands.Command) (tea.Model, tea.Cmd) 
 		response, err := a.app.Client.Session.Share(context.Background(), a.app.Session.ID)
 		if err != nil {
 			slog.Error("Failed to share session", "error", err)
-			return a, toast.NewErrorToast("Failed to share session")
+			return a, toast.NewErrorToast("分享会话失败")
 		}
 		shareUrl := response.Share.URL
 		cmds = append(cmds, tea.SetClipboard(shareUrl))
-		cmds = append(cmds, toast.NewSuccessToast("Share URL copied to clipboard!"))
+		cmds = append(cmds, toast.NewSuccessToast("分享链接已复制到剪贴板!"))
 	case commands.SessionUnshareCommand:
 		if a.app.Session.ID == "" {
 			return a, nil
@@ -837,10 +837,10 @@ func (a appModel) executeCommand(command commands.Command) (tea.Model, tea.Cmd) 
 		_, err := a.app.Client.Session.Unshare(context.Background(), a.app.Session.ID)
 		if err != nil {
 			slog.Error("Failed to unshare session", "error", err)
-			return a, toast.NewErrorToast("Failed to unshare session")
+			return a, toast.NewErrorToast("取消分享会话失败")
 		}
 		a.app.Session.Share.URL = ""
-		cmds = append(cmds, toast.NewSuccessToast("Session unshared successfully"))
+		cmds = append(cmds, toast.NewSuccessToast("会话已取消分享"))
 	case commands.SessionInterruptCommand:
 		if a.app.Session.ID == "" {
 			return a, nil
@@ -854,9 +854,9 @@ func (a appModel) executeCommand(command commands.Command) (tea.Model, tea.Cmd) 
 		// TODO: block until compaction is complete
 		a.app.CompactSession(context.Background())
 	case commands.ToolDetailsCommand:
-		message := "Tool details are now visible"
+		message := "工具详情已显示"
 		if a.messages.ToolDetailsVisible() {
-			message = "Tool details are now hidden"
+			message = "工具详情已隐藏"
 		}
 		cmds = append(cmds, util.CmdHandler(chat.ToggleToolDetailsMsg{}))
 		cmds = append(cmds, toast.NewInfoToast(message))
@@ -964,7 +964,7 @@ func (a appModel) executeCommand(command commands.Command) (tea.Model, tea.Cmd) 
 		if selected != "" {
 			cmd = tea.SetClipboard(selected)
 			cmds = append(cmds, cmd)
-			cmd = toast.NewSuccessToast("Message copied to clipboard")
+			cmd = toast.NewSuccessToast("消息已复制到剪贴板")
 			cmds = append(cmds, cmd)
 		}
 	case commands.MessagesRevertCommand:

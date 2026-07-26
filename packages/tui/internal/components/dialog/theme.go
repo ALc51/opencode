@@ -109,7 +109,7 @@ func NewThemeDialog() ThemeDialog {
 
 	return &themeDialog{
 		list:          list,
-		modal:         modal.New(modal.WithTitle("Select Theme"), modal.WithMaxWidth(40)),
+		modal:         modal.New(modal.WithTitle("选择主题"), modal.WithMaxWidth(40)),
 		originalTheme: currentTheme,
 		themeApplied:  false,
 	}

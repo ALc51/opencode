@@ -264,7 +264,7 @@ func NewModelDialog(app *app.App) ModelDialog {
 	dialog.setupAllModels()
 
 	dialog.modal = modal.New(
-		modal.WithTitle("Select Model"),
+		modal.WithTitle("选择模型"),
 		modal.WithMaxWidth(dialog.dialogWidth+4),
 	)
 
